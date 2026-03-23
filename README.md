@@ -40,6 +40,9 @@ python3 smart_gpx_merge.py *.gpx -o merged.gpx --name "My Trail Map"
 
 # Tune thresholds
 python3 smart_gpx_merge.py *.gpx --dup-radius 20 --gap-threshold 150
+
+# Crop to a specific area and drop isolated segments
+python3 smart_gpx_merge.py *.gpx --bbox 10.505,107.10,10.56,107.155 --drop-isolated
 ```
 
 ## Options
@@ -53,6 +56,8 @@ python3 smart_gpx_merge.py *.gpx --dup-radius 20 --gap-threshold 150
 | `--junction-radius` | `25` | Radius (m) to connect trail junctions across different segments |
 | `--min-points` | `5` | Minimum points for a segment to be kept |
 | `--downsample` | `8` | Minimum spacing (m) between points after downsampling |
+| `--bbox` | none | Crop to bounding box: `south,west,north,east` |
+| `--drop-isolated` | off | Drop segments that can't be bridged through existing trail |
 
 ## Example
 

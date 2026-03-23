@@ -79,7 +79,33 @@ examples:
         "--name", default="Merged Mountain Routes",
         help="Track name in the output GPX (default: 'Merged Mountain Routes')",
     )
+    parser.add_argument(
+        "--bbox", type=str, default=None,
+        help="Bounding box to crop points: south,west,north,east (e.g., 10.505,107.10,10.55,107.155)",
+    )
+    parser.add_argument(
+        "--drop-isolated", action="store_true",
+        help="Drop segments that can't be bridged through existing trail",
+    )
     return parser.parse_args()
+
+
+def filter_bbox(segments, bbox):
+    """Remove points outside bounding box, split segments at boundaries."""
+    south, west, north, east = bbox
+    filtered = []
+    for seg in segments:
+        current = []
+        for lat, lon, ele in seg:
+            if south <= lat <= north and west <= lon <= east:
+                current.append((lat, lon, ele))
+            else:
+                if len(current) >= 2:
+                    filtered.append(current)
+                current = []
+        if len(current) >= 2:
+            filtered.append(current)
+    return filtered
 
 
 def resolve_input_files(inputs, output_path):
@@ -369,6 +395,14 @@ def main():
     print(f"\nTotal raw segments: {len(all_segments)}")
     print(f"Total raw points: {sum(len(s) for s in all_segments):,}")
 
+    # Step 1b: Crop to bounding box if specified
+    if args.bbox:
+        bbox = [float(x) for x in args.bbox.split(",")]
+        print(f"\n── Cropping to bbox ({bbox[0]},{bbox[1]}) - ({bbox[2]},{bbox[3]}) ──")
+        all_segments = filter_bbox(all_segments, bbox)
+        print(f"  Segments after crop: {len(all_segments)}")
+        print(f"  Points after crop: {sum(len(s) for s in all_segments):,}")
+
     # Step 2: Split on straight-line artifacts
     print(f"\n── Removing straight-line artifacts (>{args.gap_threshold}m gaps) ──")
     split_segments = []
@@ -426,27 +460,34 @@ def main():
     # Step 7: Stitch with trail bridges
     print("\n── Stitching segments with trail bridges ──")
     final_points = list(kept_segments[0])
+    dropped = 0
 
     for i in range(1, len(kept_segments)):
-        prev_end = kept_segments[i-1][-1]
+        last_pt = final_points[-1]
         next_start = kept_segments[i][0]
-        gap_dist = haversine(prev_end[0], prev_end[1], next_start[0], next_start[1])
+        gap_dist = haversine(last_pt[0], last_pt[1], next_start[0], next_start[1])
 
         if gap_dist < args.junction_radius:
             print(f"  Gap {i}: {gap_dist:.0f}m — direct connection")
             final_points.extend(kept_segments[i])
         else:
-            start_node, _ = graph2.find_nearest_node(prev_end[0], prev_end[1])
+            start_node, _ = graph2.find_nearest_node(last_pt[0], last_pt[1])
             end_node, _ = graph2.find_nearest_node(next_start[0], next_start[1])
             bridge = graph2.shortest_path(start_node, end_node)
 
             if bridge:
                 print(f"  Gap {i}: {gap_dist:.0f}m — bridge via {len(bridge)} trail points")
                 final_points.extend(bridge)
+                final_points.extend(kept_segments[i])
+            elif args.drop_isolated:
+                print(f"  Gap {i}: {gap_dist:.0f}m — ✂ dropped (isolated, no trail path)")
+                dropped += 1
             else:
                 print(f"  Gap {i}: {gap_dist:.0f}m — ⚠ no trail path found")
+                final_points.extend(kept_segments[i])
 
-            final_points.extend(kept_segments[i])
+    if dropped:
+        print(f"  Dropped {dropped} isolated segments")
 
     # Step 8: Write output
     print(f"\n── Writing output ──")
