@@ -309,35 +309,6 @@ class TrailGraph:
         return path
 
 
-def order_segments_greedy(segments):
-    if len(segments) <= 1:
-        return segments
-    remaining = list(range(len(segments)))
-    ordered = [remaining.pop(0)]
-    while remaining:
-        last_seg = segments[ordered[-1]]
-        end_pt = last_seg[-1]
-        best_idx = None
-        best_dist = float('inf')
-        best_reverse = False
-        for idx in remaining:
-            seg = segments[idx]
-            d_start = haversine(end_pt[0], end_pt[1], seg[0][0], seg[0][1])
-            d_end = haversine(end_pt[0], end_pt[1], seg[-1][0], seg[-1][1])
-            if d_start < best_dist:
-                best_dist = d_start
-                best_idx = idx
-                best_reverse = False
-            if d_end < best_dist:
-                best_dist = d_end
-                best_idx = idx
-                best_reverse = True
-        remaining.remove(best_idx)
-        if best_reverse:
-            segments[best_idx] = list(reversed(segments[best_idx]))
-        ordered.append(best_idx)
-    return [segments[i] for i in ordered]
-
 
 def build_gpx_single(all_points, track_name):
     gpx = ET.Element("gpx", {
@@ -447,44 +418,83 @@ def main():
     print(f"  Total edges: {sum(len(v) for v in graph.adj.values()) // 2}")
     graph.connect_junctions(args.junction_radius)
 
-    # Step 6: Order segments
-    print("\n── Ordering segments ──")
-    kept_segments = order_segments_greedy(kept_segments)
-
-    # Rebuild graph after reordering
-    graph2 = TrailGraph(cell_size)
-    for seg in kept_segments:
-        graph2.add_segment(seg)
-    graph2.connect_junctions(args.junction_radius)
-
-    # Step 7: Stitch with trail bridges
+    # Step 6: Stitch segments iteratively
+    # Instead of fixed ordering, greedily pick the next segment that can be
+    # best connected (via trail bridge) from the current route endpoint.
     print("\n── Stitching segments with trail bridges ──")
     final_points = list(kept_segments[0])
+    remaining = list(range(1, len(kept_segments)))
     dropped = 0
+    stalled_count = 0
 
-    for i in range(1, len(kept_segments)):
+    while remaining:
         last_pt = final_points[-1]
-        next_start = kept_segments[i][0]
-        gap_dist = haversine(last_pt[0], last_pt[1], next_start[0], next_start[1])
+        best_idx = None
+        best_bridge = None
+        best_gap = float('inf')
+        best_reverse = False
 
-        if gap_dist < args.junction_radius:
-            print(f"  Gap {i}: {gap_dist:.0f}m — direct connection")
-            final_points.extend(kept_segments[i])
-        else:
-            start_node, _ = graph2.find_nearest_node(last_pt[0], last_pt[1])
-            end_node, _ = graph2.find_nearest_node(next_start[0], next_start[1])
-            bridge = graph2.shortest_path(start_node, end_node)
+        for idx in remaining:
+            seg = kept_segments[idx]
+            for try_reverse in [False, True]:
+                start_pt = seg[-1] if try_reverse else seg[0]
+                gap = haversine(last_pt[0], last_pt[1], start_pt[0], start_pt[1])
 
-            if bridge:
-                print(f"  Gap {i}: {gap_dist:.0f}m — bridge via {len(bridge)} trail points")
-                final_points.extend(bridge)
-                final_points.extend(kept_segments[i])
-            elif args.drop_isolated:
-                print(f"  Gap {i}: {gap_dist:.0f}m — ✂ dropped (isolated, no trail path)")
-                dropped += 1
+                if gap < args.junction_radius and gap < best_gap:
+                    best_gap = gap
+                    best_idx = idx
+                    best_bridge = None
+                    best_reverse = try_reverse
+                elif gap < best_gap:
+                    start_node, _ = graph.find_nearest_node(last_pt[0], last_pt[1])
+                    end_node, _ = graph.find_nearest_node(start_pt[0], start_pt[1])
+                    bridge = graph.shortest_path(start_node, end_node)
+                    if bridge:
+                        best_gap = gap
+                        best_idx = idx
+                        best_bridge = bridge
+                        best_reverse = try_reverse
+
+        if best_idx is not None:
+            stalled_count = 0
+            seg = kept_segments[best_idx]
+            if best_reverse:
+                seg = list(reversed(seg))
+            remaining.remove(best_idx)
+            if best_bridge:
+                print(f"  Seg {best_idx}: {best_gap:.0f}m — bridge via {len(best_bridge)} trail points")
+                final_points.extend(best_bridge)
             else:
-                print(f"  Gap {i}: {gap_dist:.0f}m — ⚠ no trail path found")
-                final_points.extend(kept_segments[i])
+                print(f"  Seg {best_idx}: {best_gap:.0f}m — direct connection")
+            final_points.extend(seg)
+        else:
+            # No bridgeable segment found from current endpoint
+            if args.drop_isolated:
+                # Drop all remaining as isolated
+                for idx in remaining:
+                    print(f"  Seg {idx}: ✂ dropped (isolated, no trail path)")
+                    dropped += 1
+                break
+            else:
+                # Pick closest remaining and connect with straight line
+                best_dist = float('inf')
+                pick_idx = remaining[0]
+                pick_reverse = False
+                for idx in remaining:
+                    seg = kept_segments[idx]
+                    for try_rev in [False, True]:
+                        sp = seg[-1] if try_rev else seg[0]
+                        d = haversine(last_pt[0], last_pt[1], sp[0], sp[1])
+                        if d < best_dist:
+                            best_dist = d
+                            pick_idx = idx
+                            pick_reverse = try_rev
+                seg = kept_segments[pick_idx]
+                if pick_reverse:
+                    seg = list(reversed(seg))
+                print(f"  Seg {pick_idx}: {best_dist:.0f}m — ⚠ no trail path found")
+                remaining.remove(pick_idx)
+                final_points.extend(seg)
 
     if dropped:
         print(f"  Dropped {dropped} isolated segments")
