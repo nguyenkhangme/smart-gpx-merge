@@ -1,6 +1,10 @@
 # smart-gpx-merge
 
-Merge multiple overlapping GPX files into a single continuous route. Built for combining trail running / hiking GPS tracks from the same area (e.g., a mountain with many trails) into one unified map.
+Merge multiple overlapping GPX files into a single continuous route — **no straight lines, no duplicates**.
+
+Most GPX merge approaches draw straight lines between disconnected segments. smart-gpx-merge bridges gaps by retracing existing trail, producing a clean map you can load in offline GPX apps or print with topo contour lines.
+
+Built for combining trail running / hiking GPS tracks from the same area (e.g., a mountain with many trails) into one unified map.
 
 ## Features
 
