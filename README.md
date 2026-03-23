@@ -6,6 +6,8 @@ Most GPX merge approaches draw straight lines between disconnected segments. sma
 
 Built for combining trail running / hiking GPS tracks from the same area (e.g., a mountain with many trails) into one unified map.
 
+![use with claude code]](claude-code-demo.png)
+
 ## Features
 
 - **Duplicate removal** — detects overlapping trail segments using spatial proximity and keeps only unique coverage
