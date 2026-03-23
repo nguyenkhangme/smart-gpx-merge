@@ -26,29 +26,44 @@ Input: Multiple GPX files with overlapping routes
 Output: One continuous GPX track covering all unique routes
 ```
 
+## Installation
+
+```bash
+# Using uv (recommended)
+uv tool install smart-gpx-merge    # from PyPI
+uv tool install .                   # from source
+
+# Using pip
+pip install smart-gpx-merge        # from PyPI
+pip install .                       # from source
+
+# Or run directly without installing
+python3 smart_gpx_merge.py [args]
+```
+
 ## Usage
 
 ```bash
 # Merge all .gpx files in a directory
-python3 smart_gpx_merge.py ./my_tracks/
+smart-gpx-merge ./my_tracks/
 
 # Merge specific files
-python3 smart_gpx_merge.py track1.gpx track2.gpx track3.gpx
+smart-gpx-merge track1.gpx track2.gpx track3.gpx
 
 # Custom output file and track name
-python3 smart_gpx_merge.py *.gpx -o merged.gpx --name "My Trail Map"
+smart-gpx-merge *.gpx -o merged.gpx --name "My Trail Map"
 
 # Tune thresholds
-python3 smart_gpx_merge.py *.gpx --dup-radius 20 --gap-threshold 150
+smart-gpx-merge *.gpx --dup-radius 20 --gap-threshold 150
 
 # Crop to a specific area and drop isolated segments
-python3 smart_gpx_merge.py *.gpx --bbox 10.505,107.10,10.56,107.155 --drop-isolated
+smart-gpx-merge *.gpx --bbox 10.505,107.10,10.56,107.155 --drop-isolated
 ```
 
 ## Options
 
 | Flag | Default | Description |
-|------|---------|-------------|
+| ------ | --------- | ------------- |
 | `-o, --output` | `merged_all_routes.gpx` | Output file path |
 | `--name` | `Merged Mountain Routes` | Track name in the output GPX |
 | `--dup-radius` | `15` | Radius (m) to consider two points as the same location |
@@ -64,10 +79,10 @@ python3 smart_gpx_merge.py *.gpx --bbox 10.505,107.10,10.56,107.155 --drop-isola
 Merging 4 GPX files with overlapping trail runs on the same mountain:
 
 ```bash
-python3 smart_gpx_merge.py ./tracks/ -o merged.gpx --name "Mountain Trails"
+smart-gpx-merge ./tracks/ -o merged.gpx --name "Mountain Trails"
 ```
 
-```
+```text
 📂 route_a.gpx:          1 segment, 58,000 points
 📂 route_b.gpx:          1 segment, 10,000 points
 📂 route_c.gpx:          1 segment, 16,000 points
@@ -83,6 +98,29 @@ python3 smart_gpx_merge.py ./tracks/ -o merged.gpx --name "Mountain Trails"
 - **Duplicate radius** (`--dup-radius`): Increase if parallel trails are being kept as separate segments. Decrease if distinct nearby trails are being merged incorrectly.
 - **Gap threshold** (`--gap-threshold`): Lower this if you see GPS jumps that aren't being caught. Raise if legitimate trail sections are being split.
 - **Junction radius** (`--junction-radius`): Controls how far apart two points from different segments can be and still be considered the same trail junction. Affects gap bridging quality.
+
+## Use with AI Agents
+
+### Claude Code
+
+Add a `CLAUDE.md` to your project (see [CLAUDE.md](CLAUDE.md) for an example). Claude Code reads this file at the start of every conversation, so it will know `smart-gpx-merge` is available and how to use it.
+
+```bash
+# Install the tool
+pip install smart-gpx-merge
+
+# Claude Code will then call it via Bash when working with GPX files
+```
+
+### Other AI Agents
+
+Any AI agent that can run shell commands can use it:
+
+```bash
+smart-gpx-merge ./tracks/ -o merged.gpx --drop-isolated
+```
+
+The `CLAUDE.md` file documents the CLI interface, flags, and common patterns for AI agent discoverability.
 
 ## Requirements
 

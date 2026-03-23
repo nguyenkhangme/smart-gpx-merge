@@ -21,6 +21,8 @@ import sys
 import heapq
 from collections import defaultdict
 
+__version__ = "0.1.0"
+
 # ── Defaults ───────────────────────────────────────────────────
 DEFAULT_OUTPUT = "merged_all_routes.gpx"
 DEFAULT_DUP_RADIUS = 15
@@ -46,6 +48,9 @@ examples:
   %(prog)s *.gpx -o my_merged_route.gpx
   %(prog)s *.gpx --dup-radius 20 --gap-threshold 150
 """,
+    )
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {__version__}",
     )
     parser.add_argument(
         "inputs", nargs="+",

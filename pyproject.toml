@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "smart-gpx-merge"
+version = "0.1.0"
+description = "Merge multiple GPX files into one continuous route, removing duplicates and bridging gaps"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.8"
+keywords = ["gpx", "gps", "merge", "trail", "running", "hiking"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: GIS",
+]
+
+[project.scripts]
+smart-gpx-merge = "smart_gpx_merge:main"
+
+[tool.setuptools]
+py-modules = ["smart_gpx_merge"]
