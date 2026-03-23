@@ -21,7 +21,7 @@ import sys
 import heapq
 from collections import defaultdict
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 # ── Defaults ───────────────────────────────────────────────────
 DEFAULT_OUTPUT = "merged_all_routes.gpx"
