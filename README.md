@@ -101,26 +101,48 @@ smart-gpx-merge ./tracks/ -o merged.gpx --name "Mountain Trails"
 
 ## Use with AI Agents
 
-### Claude Code
+### Option A: Claude Code Skill (no install needed)
 
-Add a `CLAUDE.md` to your project (see [CLAUDE.md](CLAUDE.md) for an example). Claude Code reads this file at the start of every conversation, so it will know `smart-gpx-merge` is available and how to use it.
+Copy the `skills/merge-gpx` folder into your Claude Code skills directory:
 
 ```bash
-# Install the tool
+mkdir -p ~/.claude/skills
+cp -r skills/merge-gpx ~/.claude/skills/merge-gpx
+```
+
+Then use `/merge-gpx` in Claude Code. The skill bundles the Python script — no pip install required.
+
+### Option B: Any AI Agent
+
+Install the CLI tool:
+
+```bash
 pip install smart-gpx-merge
-
-# Claude Code will then call it via Bash when working with GPX files
 ```
 
-### Other AI Agents
+Then add the following to your agent's instruction file (`CLAUDE.md`, `AGENTS.md`, `.cursorrules`, etc.):
 
-Any AI agent that can run shell commands can use it:
+```markdown
+## GPX Merge Tool
 
-```bash
-smart-gpx-merge ./tracks/ -o merged.gpx --drop-isolated
+`smart-gpx-merge` is installed as a CLI tool for merging multiple GPX files.
+
+Usage: smart-gpx-merge <inputs> [options]
+
+Key flags:
+- `-o, --output` — output file (default: merged_all_routes.gpx)
+- `--dup-radius` — dedup radius in meters (default: 15)
+- `--gap-threshold` — max gap before splitting (default: 100)
+- `--bbox south,west,north,east` — crop to area
+- `--drop-isolated` — remove unbridgeable segments
+- `--name` — track name in output
+
+Examples:
+  smart-gpx-merge ./tracks/ -o merged.gpx
+  smart-gpx-merge *.gpx --bbox 10.5,107.1,10.55,107.15 --drop-isolated
 ```
 
-The `CLAUDE.md` file documents the CLI interface, flags, and common patterns for AI agent discoverability.
+Works with any AI agent that has shell access (Claude Code, Cursor, Windsurf, Cline, etc.).
 
 ## Requirements
 
