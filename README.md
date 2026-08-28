@@ -99,6 +99,20 @@ smart-gpx-merge ./tracks/ -o merged.gpx --name "Mountain Trails"
 → Output: 1 continuous track, ~7,200 points
 ```
 
+## Getting GPX tracks
+
+Need trail data to merge? Use [gpx-fetch](https://github.com/nguyenkhangme/gpx-fetch) to download trails from OpenStreetMap:
+
+```bash
+# Fetch OSM trails for your area
+gpx-fetch --bbox 10.49,107.09,10.56,107.17 -o osm_trails.gpx
+
+# Merge with your own GPS tracks
+smart-gpx-merge osm_trails.gpx my_track.gpx -o complete_map.gpx
+```
+
+Other sources: your own GPS recordings, friends' tracks, race/event logs.
+
 ## Tips
 
 - **Duplicate radius** (`--dup-radius`): Increase if parallel trails are being kept as separate segments. Decrease if distinct nearby trails are being merged incorrectly.
